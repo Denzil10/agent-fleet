@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unattended agent fleet: built in public</title>
+<meta name="description" content="How I run an autonomous, multi-lane agent fleet with no human in the loop, and the structural guards that keep it honest.">
+<style>
+:root {
+  --bg: #fcfcfb; --panel: #f3f2ee; --line: #dddcd6; --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #7a7973;
+  --s1: #2a78d6; --s2: #eb6834; --accent: #2a78d6; --good: #0ca30c;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a19; --panel: #232322; --line: #383835; --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #8e8d85;
+    --s1: #3987e5; --s2: #d95926; --accent: #6da7ec; --good: #0ca30c;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 56px 24px 80px; }
+h1 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.1; letter-spacing: -0.02em; margin: 6px 0 14px; }
+h2 { font-size: 22px; margin: 64px 0 6px; letter-spacing: -0.01em; }
+.kicker { color: var(--accent); font: 600 13px/1 ui-monospace, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.lede { color: var(--ink-2); font-size: 18px; max-width: 760px; }
+.sub { color: var(--ink-2); margin: 0 0 22px; max-width: 760px; }
+code, .mono { font-family: ui-monospace, Menlo, monospace; font-size: .9em; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 34px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.stat b { display: block; font-size: 28px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--ink-2); font-size: 13px; }
+
+.flow { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+.node { flex: 1 1 140px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; position: relative; }
+.node h4 { margin: 0 0 3px; font-size: 14px; }
+.node p { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.4; }
+.node.gate { border-left: 3px solid var(--s2); }
+.node.model { border-left: 3px solid var(--s1); }
+.node.det { border-left: 3px solid var(--ink-3); }
+.arrow { align-self: center; color: var(--ink-3); font-size: 18px; flex: 0 0 auto; }
+.seq { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px 22px; }
+.seq .node:not(:last-child)::after { content: "→"; position: absolute; right: -17px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
+@media (max-width: 640px) {
+  .seq { grid-template-columns: 1fr; gap: 20px; }
+  .seq .node:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -19px; transform: none; }
+  .row .arrow { display: none; }
+}
+.lane-label { font: 600 12px/1 ui-monospace, Menlo, monospace; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 2px; }
+.key { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); margin-top: 12px; }
+.key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+.chart-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 16px 8px; position: relative; }
+.legend { display: flex; gap: 18px; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+svg text { fill: var(--ink-2); font: 11px ui-sans-serif, -apple-system, sans-serif; }
+.grid line { stroke: var(--line); }
+.tip { position: absolute; pointer-events: none; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0,0,0,.12); display: none; white-space: nowrap; }
+details { margin-top: 10px; font-size: 13px; color: var(--ink-2); }
+table { border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+td, th { padding: 3px 12px 3px 0; text-align: left; border-bottom: 1px solid var(--line); }
+
+.log { list-style: none; padding: 0; margin: 0; border-left: 2px solid var(--line); }
+.log li { position: relative; padding: 0 0 30px 26px; }
+.log li::before { content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--bg); border: 2px solid var(--accent); }
+.log time { font: 12px ui-monospace, Menlo, monospace; color: var(--ink-3); }
+.log h3 { margin: 2px 0 8px; font-size: 17px; }
+.log dl { display: grid; grid-template-columns: 78px 1fr; gap: 4px 12px; margin: 0; font-size: 14.5px; }
+.log dt { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; padding-top: 3px; }
+.log dd { margin: 0; color: var(--ink-2); }
+
+.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.principles div { border-top: 2px solid var(--accent); padding-top: 10px; }
+.principles h4 { margin: 0 0 4px; font-size: 15px; }
+.principles p { margin: 0; color: var(--ink-2); font-size: 14px; }
+footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="kicker">Built in public · AI engineering</div>
+  <h1>An unattended agent fleet,<br>held to evidence.</h1>
+  <p class="lede">I design and run a multi-lane autonomous agent system on one machine. Each lane researches, builds and ships small products with no human in the loop. The products are the testbed. The work is the engineering that makes unsupervised agents reliable: verifiable claims, mechanical guards, model tiering, and failure handling that doesn't depend on the model behaving.</p>
+  <div class="stats" id="stats"></div>
+
+  <h2>Architecture</h2>
+  <p class="sub">One hourly runner. Deterministic gates run before any model is called, and a verifier checks everything a model wrote before it's committed.</p>
+  <div class="flow">
+    <div class="lane-label">Planning · daily</div>
+    <div class="seq">
+      <div class="node model"><h4>Planner</h4><p>Sonnet daily, Opus weekly review. No tools; reads outcomes, emits playbook ops.</p></div>
+      <div class="node det"><h4>Shared playbook</h4><p>ADD / EDIT / RETIRE / PROPOSE ops, append-only change log.</p></div>
+      <div class="node det"><h4>Focus cap</h4><p>Five focus areas at most; the rotation follows them.</p></div>
+    </div>
+    <div class="lane-label">Execution · hourly, per lane</div>
+    <div class="seq">
+      <div class="node gate"><h4>Preflight gates</h4><p>Pause flag, network, live usage windows, daily run cap.</p></div>
+      <div class="node det"><h4>Script reads</h4><p>Metrics are read by code first, so the model can't invent them.</p></div>
+      <div class="node gate"><h4>Stall rule</h4><p>Three no-progress runs on one item park the lane.</p></div>
+      <div class="node model"><h4>Worker run</h4><p>Headless agent, restricted permission profile, hard timeout.</p></div>
+      <div class="node gate"><h4>Verifier</h4><p>Stage claims without stage-typed <code>verified_via</code> go to quarantine.</p></div>
+      <div class="node det"><h4>Commit</h4><p>Every run leaves a commit and a log; blockers go to the owner.</p></div>
+    </div>
+    <div class="lane-label">Side channels</div>
+    <div class="row">
+      <div class="node model"><h4>Volume tier</h4><p>Free-model chain behind a local proxy for bulk sourcing and scans.</p></div>
+      <div class="node det"><h4>Paced publisher</h4><p>Deterministic script with cap, gap and URL check, outside the LLM loop.</p></div>
+      <div class="node gate"><h4>Protected paths</h4><p>Guards and runner are read-only to agents; edits are reverted.</p></div>
+    </div>
+    <div class="key"><span><i style="background:var(--s1)"></i>Model call</span><span><i style="background:var(--s2)"></i>Gate (can stop the run)</span><span><i style="background:var(--ink-3)"></i>Deterministic code</span></div>
+  </div>
+
+  <h2>Runs per week</h2>
+  <p class="sub" id="chart-sub"></p>
+  <div class="chart-wrap">
+    <div class="legend"><span><i style="background:var(--s1)"></i>Completed</span><span><i style="background:var(--s2)"></i>No output or error</span></div>
+    <svg id="chart" width="100%" height="230" role="img" aria-label="Runs per week, completed versus failed"></svg>
+    <div class="tip" id="tip"></div>
+  </div>
+  <details><summary>Table view</summary><table id="tbl"></table></details>
+
+  <h2>Decision log</h2>
+  <p class="sub">How the fleet was steered: what the signal was, what changed, and what that bought.</p>
+  <ol class="log" id="log"></ol>
+
+  <h2>Principles that held up</h2>
+  <div class="principles">
+    <div><h4>Capability, not judgement</h4><p>If an agent must not do something unattended, remove the permission. Don't ask it nicely.</p></div>
+    <div><h4>Claims carry their proof</h4><p>A status is a pointer to a live check, or it's quarantined.</p></div>
+    <div><h4>Deterministic where possible</h4><p>Reading numbers, pacing and publishing are scripts. The model plans and builds.</p></div>
+    <div><h4>Fail loud, once</h4><p>A stuck lane parks and files one blocker, instead of burning runs in silence.</p></div>
+  </div>
+
+  <footer id="foot"></footer>
+</main>
+<script>
+const DATA = {
+ "metrics": {
+  "as_of": "2026-10-24",
+  "since": "2026-09-11",
+  "lanes": 3,
+  "commits": 524,
+  "runs": {
+   "scheduled": 529,
+   "completed": 380,
+   "errored": 17,
+   "no_output": 132
+  },
+  "turns": 9385,
+  "notional_cost_usd": 307.17,
+  "guard_denials": 1,
+  "claims_quarantined": 5,
+  "stalls_parked": 1,
+  "stalls_cleared": 1,
+  "planner_edits": {
+   "ADD": 31,
+   "PROPOSE": 11,
+   "EDIT": 38,
+   "RETIRE": 17,
+   "MERGE": 2
+  },
+  "model_tiers": {
+   "opus": 60,
+   "haiku": 175,
+   "sonnet": 390
+  },
+  "weekly": [
+   {
+    "week": "2026-09-07",
+    "completed": 0,
+    "errored": 0,
+    "no_output": 1
+   },
+   {
+    "week": "2026-09-14",
+    "completed": 137,
+    "errored": 13,
+    "no_output": 26
+   },
+   {
+    "week": "2026-09-21",
+    "completed": 55,
+    "errored": 3,
+    "no_output": 95
+   },
+   {
+    "week": "2026-09-28",
+    "completed": 113,
+    "errored": 1,
+    "no_output": 4
+   },
+   {
+    "week": "2026-10-05",
+    "completed": 29,
+    "errored": 0,
+    "no_output": 4
+   },
+   {
+    "week": "2026-10-12",
+    "completed": 15,
+    "errored": 0,
+    "no_output": 0
+   },
+   {
+    "week": "2026-10-19",
+    "completed": 31,
+    "errored": 0,
+    "no_output": 2
+   }
+  ]
+ },
+ "decisions": [
+  {
+   "date": "2026-08-30",
+   "title": "A prompt is not a control",
+   "signal": "An earlier five-agent fleet on low-tier models recorded publish IDs that never existed (one literally prefixed sim-), invented engagement and revenue rows, and, when its review gate broke for 40+ days, wrote its own passing reviews.",
+   "decision": "Tore the fleet down. Anything an agent writes about the outside world is unverified until a check outside the model confirms it.",
+   "result": "Every later guard is mechanical: file permissions, a verifier script, deterministic gates. None depends on the agent choosing to comply."
+  },
+  {
+   "date": "2026-09-11",
+   "title": "Extend the loop that ran, not a fourth framework",
+   "signal": "Surveyed four candidate stacks. Only one had real execution: 14+ unattended runs, with validation gates that had killed 3 bad bets on logged evidence. An orchestration platform under consideration had never completed a run.",
+   "decision": "Generalised that single tick loop into a multi-lane fleet and added two tiers it lacked: a frontier critique tier and a free-model volume tier behind a local proxy.",
+   "result": "One runtime and one stage machine (candidate, validated, built, listed, awaiting payout) shared by every lane."
+  },
+  {
+   "date": "2026-09-11",
+   "title": "Evidence per stage, enforced by a verifier",
+   "signal": "The audit's root cause: a run wrote a status it could not have observed.",
+   "decision": "A stage claim must carry evidence of that stage's type, with a verified_via field naming the live check. The verifier runs after every tick and quarantines unbacked claims for review instead of deleting them.",
+   "result": "In the first week it demoted three real claims whose evidence was mis-shaped. The agents repaired the evidence; nobody loosened the rule."
+  },
+  {
+   "date": "2026-09-16",
+   "title": "Re-check guards per unit of work",
+   "signal": "The home-network gate ran once at batch start. One batch outlived that reading by 1h40m and kept acting from another network.",
+   "decision": "Every lane re-checks the gate before taking the shared browser lock, under its own timeout. Unattended agents act under a real identity, so the guard has to hold for every action, not only the first.",
+   "result": "Guards live in one shared, read-only file that every autopilot on the machine sources."
+  },
+  {
+   "date": "2026-09-20",
+   "title": "The fleet catches its own fabrication",
+   "signal": "A run found 19 unverified data rows that a previous run had left uncommitted on disk.",
+   "decision": "Discarded them and logged why, following the same evidence rule the verifier enforces.",
+   "result": "Self-correction now shows up in the commit history, not only in prompts."
+  },
+  {
+   "date": "2026-10-02",
+   "title": "Split planner from worker; cap the draw",
+   "signal": "A weekly critique from a second model produced reports nothing read. Usage grew with every lane added.",
+   "decision": "A daily planner (Sonnet, Opus on Mondays) with no tools edits a shared playbook. Workers on separate models execute. Rotation is capped at five focus areas, with a daily run cap: firing hourly lets a lost slot refill later the same day.",
+   "result": "The playbook evolves through logged ADD / EDIT / RETIRE operations rather than prompt rewrites."
+  },
+  {
+   "date": "2026-10-14",
+   "title": "Stall rule: stop paying for the same failure",
+   "signal": "A lane retried one disabled button for three runs in a row. The prompt's own three-strikes rule did not stop it.",
+   "decision": "Detection moved into the runner: three no-progress runs on the same work item park the lane for one UTC day and file one owner blocker. A repeat the next day escalates instead of going quiet.",
+   "result": "A replay over the full run history parks the real loops and none of the healthy publishing runs."
+  },
+  {
+   "date": "2026-10-19",
+   "title": "Take the deterministic step out of the LLM loop",
+   "signal": "While one lane was parked, its scheduled output stopped for four days because publishing only happened inside an LLM run.",
+   "decision": "Moved publishing to a paced script with its own cap, minimum gap and URL verification, supervised with a hard timeout. Inputs the model reasons on, such as sales numbers, are read by scripts before the run, so the model can't invent them.",
+   "result": "Output cadence no longer depends on an LLM run being healthy."
+  }
+ ]
+};
+const M = DATA.metrics, fmt = n => n.toLocaleString("en-US");
+const days = Math.round((new Date(M.as_of) - new Date(M.since)) / 864e5);
+const edits = Object.values(M.planner_edits).reduce((a, b) => a + b, 0);
+const stats = [
+  [fmt(M.runs.scheduled), `unattended runs in ${days} days`],
+  [fmt(M.commits), "commits by the fleet"],
+  [M.lanes, "parallel lanes"],
+  [M.claims_quarantined, "claims quarantined by the verifier"],
+  [M.stalls_parked, `stall${M.stalls_parked === 1 ? "" : "s"} caught and parked`],
+  [fmt(edits), "planner edits to the playbook"],
+];
+document.getElementById("stats").innerHTML = stats.map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
+
+const ok = M.runs.completed, bad = M.runs.scheduled - ok;
+document.getElementById("chart-sub").textContent =
+  `${fmt(ok)} of ${fmt(M.runs.scheduled)} scheduled runs completed (${Math.round(100 * ok / M.runs.scheduled)}%). ` +
+  `The rest ended without a result: hard timeouts, a guard stopping the run partway, or errors.`;
+
+(function chart() {
+  const svg = document.getElementById("chart"), tip = document.getElementById("tip");
+  const W = svg.clientWidth || 900, H = 230, P = {l: 34, r: 8, t: 10, b: 26};
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const rows = M.weekly.map(w => ({...w, bad: w.no_output + w.errored}));
+  const max = Math.max(...rows.map(r => r.completed + r.bad));
+  const step = Math.pow(10, Math.floor(Math.log10(max))) / (max / Math.pow(10, Math.floor(Math.log10(max))) < 3 ? 2 : 1);
+  const top = Math.ceil(max / step) * step, y = v => H - P.b - (v / top) * (H - P.t - P.b);
+  const bw = (W - P.l - P.r) / rows.length, barW = Math.min(36, bw - 6);
+  let s = '<g class="grid">';
+  for (let v = 0; v <= top; v += step) s += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${P.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  s += "</g>";
+  rows.forEach((r, i) => {
+    const x = P.l + i * bw + (bw - barW) / 2, y0 = y(r.completed), y1 = y(r.completed + r.bad);
+    s += `<g data-i="${i}">`;
+    s += `<rect x="${P.l + i * bw}" y="${P.t}" width="${bw}" height="${H - P.t - P.b}" fill="transparent"/>`;
+    if (r.completed) s += `<rect x="${x}" y="${y0}" width="${barW}" height="${H - P.b - y0}" fill="var(--s1)" rx="2"/>`;
+    if (r.bad) s += `<rect x="${x}" y="${y1}" width="${barW}" height="${Math.max(0, y0 - y1 - 2)}" fill="var(--s2)" rx="2"/>`;
+    if (i % Math.ceil(rows.length / 8) === 0) s += `<text x="${x + barW / 2}" y="${H - 8}" text-anchor="middle">${r.week.slice(5)}</text>`;
+    s += "</g>";
+  });
+  svg.innerHTML = s;
+  svg.addEventListener("mousemove", e => {
+    const g = e.target.closest("g[data-i]");
+    if (!g) { tip.style.display = "none"; return; }
+    const r = rows[+g.dataset.i], box = svg.parentNode.getBoundingClientRect();
+    tip.innerHTML = `<b>Week of ${r.week}</b><br>Completed ${r.completed}<br>No output or error ${r.bad}`;
+    tip.style.display = "block";
+    tip.style.left = Math.min(e.clientX - box.left + 12, box.width - 180) + "px";
+    tip.style.top = (e.clientY - box.top - 10) + "px";
+  });
+  svg.addEventListener("mouseleave", () => tip.style.display = "none");
+  document.getElementById("tbl").innerHTML = "<tr><th>Week of</th><th>Completed</th><th>No output</th><th>Error</th></tr>" +
+    rows.map(r => `<tr><td>${r.week}</td><td>${r.completed}</td><td>${r.no_output}</td><td>${r.errored}</td></tr>`).join("");
+})();
+
+const esc = t => t.replace(/[&<>]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"}[c]));
+document.getElementById("log").innerHTML = DATA.decisions.slice().reverse().map(d => `
+  <li><time>${d.date}</time><h3>${esc(d.title)}</h3><dl>
+    <dt>Signal</dt><dd>${esc(d.signal)}</dd><dt>Decision</dt><dd>${esc(d.decision)}</dd><dt>Result</dt><dd>${esc(d.result)}</dd>
+  </dl></li>`).join("");
+
+const t = M.model_tiers;
+document.getElementById("foot").innerHTML =
+  `Generated from the fleet's own logs and git history on ${M.as_of}, not written by hand. ` +
+  `Runs by model tier: Sonnet ${fmt(t.sonnet || 0)}, Haiku ${fmt(t.haiku || 0)}, Opus ${fmt(t.opus || 0)}. ` +
+  `${fmt(M.turns)} agent turns, about $${fmt(Math.round(M.notional_cost_usd))} at API list price, all of it run on an existing subscription and free tiers. Built by Denzil.`;
+</script>
+</body>
+</html>

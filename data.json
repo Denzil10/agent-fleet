@@ -1,0 +1,74 @@
+{
+ "as_of": "2026-10-24",
+ "since": "2026-09-11",
+ "lanes": 3,
+ "commits": 524,
+ "runs": {
+  "scheduled": 529,
+  "completed": 380,
+  "errored": 17,
+  "no_output": 132
+ },
+ "turns": 9385,
+ "notional_cost_usd": 307.17,
+ "guard_denials": 1,
+ "claims_quarantined": 5,
+ "stalls_parked": 1,
+ "stalls_cleared": 1,
+ "planner_edits": {
+  "ADD": 31,
+  "PROPOSE": 11,
+  "EDIT": 38,
+  "RETIRE": 17,
+  "MERGE": 2
+ },
+ "model_tiers": {
+  "opus": 60,
+  "haiku": 175,
+  "sonnet": 390
+ },
+ "weekly": [
+  {
+   "week": "2026-09-07",
+   "completed": 0,
+   "errored": 0,
+   "no_output": 1
+  },
+  {
+   "week": "2026-09-14",
+   "completed": 137,
+   "errored": 13,
+   "no_output": 26
+  },
+  {
+   "week": "2026-09-21",
+   "completed": 55,
+   "errored": 3,
+   "no_output": 95
+  },
+  {
+   "week": "2026-09-28",
+   "completed": 113,
+   "errored": 1,
+   "no_output": 4
+  },
+  {
+   "week": "2026-10-05",
+   "completed": 29,
+   "errored": 0,
+   "no_output": 4
+  },
+  {
+   "week": "2026-10-12",
+   "completed": 15,
+   "errored": 0,
+   "no_output": 0
+  },
+  {
+   "week": "2026-10-19",
+   "completed": 31,
+   "errored": 0,
+   "no_output": 2
+  }
+ ]
+}

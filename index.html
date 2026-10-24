@@ -86,6 +86,10 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line);
   <p class="lede">I design and run a multi-lane autonomous agent system on one machine. Each lane researches, builds and ships small products with no human in the loop. The products are the testbed. The work is the engineering that makes unsupervised agents reliable: verifiable claims, mechanical guards, model tiering, and failure handling that doesn't depend on the model behaving.</p>
   <div class="stats" id="stats"></div>
 
+  <h2>What it shipped</h2>
+  <p class="sub">Small digital products that the lanes research, build, list and promote themselves. Counted from the fleet's own ledgers and re-checked on every publish. Revenue appears here only once a scripted read of the storefront confirms it.</p>
+  <div class="stats" id="outcomes"></div>
+
   <h2>Architecture</h2>
   <p class="sub">One hourly runner. Deterministic gates run before any model is called, and a verifier checks everything a model wrote before it's committed.</p>
   <div class="flow">
@@ -162,10 +166,16 @@ const DATA = {
    "RETIRE": 17,
    "MERGE": 2
   },
+  "outcomes": {
+   "shipped_live": 13,
+   "shipped_claimed": 13,
+   "bets_killed": 7,
+   "spend_usd": 0.0
+  },
   "model_tiers": {
-   "opus": 60,
+   "haiku": 175,
    "sonnet": 391,
-   "haiku": 175
+   "opus": 60
   },
   "weekly": [
    {
@@ -283,6 +293,13 @@ const stats = [
   [fmt(edits), "planner edits to the playbook"],
 ];
 document.getElementById("stats").innerHTML = stats.map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
+
+const O = M.outcomes;
+document.getElementById("outcomes").innerHTML = [
+  [O.shipped_live, "products live, each listing checked at publish time"],
+  [O.bets_killed, "bets killed on logged evidence"],
+  ["$" + fmt(O.spend_usd), "cash spent: a required payment becomes a blocker for me, never a purchase"],
+].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
 
 const ok = M.runs.completed, bad = M.runs.scheduled - ok;
 document.getElementById("chart-sub").textContent =

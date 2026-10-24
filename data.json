@@ -22,10 +22,16 @@
   "RETIRE": 17,
   "MERGE": 2
  },
+ "outcomes": {
+  "shipped_live": 13,
+  "shipped_claimed": 13,
+  "bets_killed": 7,
+  "spend_usd": 0.0
+ },
  "model_tiers": {
-  "opus": 60,
+  "haiku": 175,
   "sonnet": 391,
-  "haiku": 175
+  "opus": 60
  },
  "weekly": [
   {

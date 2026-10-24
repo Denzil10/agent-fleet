@@ -2,15 +2,15 @@
  "as_of": "2026-10-24",
  "since": "2026-09-11",
  "lanes": 3,
- "commits": 524,
+ "commits": 525,
  "runs": {
-  "scheduled": 529,
-  "completed": 380,
+  "scheduled": 530,
+  "completed": 381,
   "errored": 17,
   "no_output": 132
  },
- "turns": 9385,
- "notional_cost_usd": 307.17,
+ "turns": 9397,
+ "notional_cost_usd": 307.49,
  "guard_denials": 1,
  "claims_quarantined": 5,
  "stalls_parked": 1,
@@ -23,9 +23,9 @@
   "MERGE": 2
  },
  "model_tiers": {
+  "sonnet": 391,
   "opus": 60,
-  "haiku": 175,
-  "sonnet": 390
+  "haiku": 175
  },
  "weekly": [
   {
@@ -66,7 +66,7 @@
   },
   {
    "week": "2026-10-19",
-   "completed": 31,
+   "completed": 32,
    "errored": 0,
    "no_output": 2
   }

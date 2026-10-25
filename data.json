@@ -29,9 +29,9 @@
   "spend_usd": 0.0
  },
  "model_tiers": {
-  "haiku": 175,
+  "opus": 60,
   "sonnet": 393,
-  "opus": 60
+  "haiku": 175
  },
  "weekly": [
   {

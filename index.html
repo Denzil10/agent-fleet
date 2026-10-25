@@ -187,9 +187,9 @@ const DATA = {
    "spend_usd": 0.0
   },
   "model_tiers": {
-   "haiku": 175,
+   "opus": 60,
    "sonnet": 393,
-   "opus": 60
+   "haiku": 175
   },
   "weekly": [
    {
@@ -300,7 +300,7 @@ const DATA = {
    "title": "A claim the verifier demoted",
    "source": "state/quarantine.json",
    "artifact": "{\n \"id\": 3,\n \"name\": \"[product]\",\n \"stage\": \"built\",\n \"_demoted_from\": \"listed\",\n \"_quarantine_reason\": [\n  \"stage=listed requires an evidence entry of type 'live_own_listing' carrying verified_via\"\n ]\n}",
-   "note": "The agent wrote stage=listed. The verifier found no live listing evidence and moved the record back to built, keeping it for review rather than deleting it. Five records sit in quarantine today, all demoted the same way."
+   "note": "The agent wrote stage=listed. The verifier found no live listing evidence and moved the record back to built, keeping it for review rather than deleting it. Five records sat in quarantine on 2026-10-25, all demoted the same way."
   },
   {
    "date": "2026-09",
@@ -320,7 +320,7 @@ const DATA = {
    "date": "2026-09-20",
    "title": "A stage that let work stop at $0",
    "source": "core/verify-ledger.py",
-   "artifact": "# Added 2026-09-20. `awaiting-payout` was the success terminal, so eight\n# bets across [two lanes] sat \"finished\" at $0 with no stage\n# left to reach and no obligation to keep working. Revenue now has its own\n# terminal, and reaching it takes a sales figure read from [the storefront], not a\n# narrative claim: sales_count must be a positive integer in the evidence.\n\"first-sale\": (\n    \"an evidence entry of type 'sales_check' ... whose sales_count is > 0, carrying verified_via\",\n    lambda bet: any(\n        e.get(\"type\") in (\"sales_check\", \"market_series\")\n        and e.get(\"verified_via\")\n        and isinstance(e.get(\"sales_count\"), int)\n        and e.get(\"sales_count\") > 0\n        for e in bet.get(\"evidence\") or []),\n),",
+   "artifact": "# Added 2026-09-20. `awaiting-payout` was the success terminal, so eight\n# bets across [two lanes] sat \"finished\" at $0 with no stage\n# left to reach and no obligation to keep working. Revenue now has its own\n# terminal, and reaching it takes a sales figure read from [the storefront], not a\n# narrative claim: sales_count must be a positive integer in the evidence.\n\"first-sale\": (\n    \"an evidence entry of type '[storefront]_sales_check' ... whose sales_count is > 0, carrying verified_via\",\n    lambda bet: any(\n        e.get(\"type\") in (\"[storefront]_sales_check\", \"market_series\")\n        and e.get(\"verified_via\")\n        and isinstance(e.get(\"sales_count\"), int)\n        and e.get(\"sales_count\") > 0\n        for e in bet.get(\"evidence\") or []),\n),",
    "note": "The stage machine defined what done meant, and it set the bar too low. Eight bets reached the last stage without earning anything. Adding a terminal stage that needs a scripted sales read fixed it."
   },
   {

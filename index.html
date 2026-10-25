@@ -72,6 +72,15 @@ td, th { padding: 3px 12px 3px 0; text-align: left; border-bottom: 1px solid var
 .log dt { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; padding-top: 3px; }
 .log dd { margin: 0; color: var(--ink-2); }
 
+.ex { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.ex article { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.ex h3 { margin: 2px 0 8px; font-size: 16px; }
+.ex time, .ex .src { font: 12px ui-monospace, Menlo, monospace; color: var(--ink-3); }
+.ex pre { margin: 8px 0; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font: 12.5px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ex p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+nav.top { display: flex; gap: 18px; font-size: 14px; margin-bottom: 30px; }
+nav.top a { color: var(--ink-2); text-decoration: none; }
+nav.top a:first-child { color: var(--ink); font-weight: 600; margin-right: auto; }
 .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
 .principles div { border-top: 2px solid var(--accent); padding-top: 10px; }
 .principles h4 { margin: 0 0 4px; font-size: 15px; }
@@ -81,6 +90,7 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line);
 </head>
 <body>
 <main>
+  <nav class="top"><a href="https://denzil10.github.io/">Denzil Nelson</a><a href="https://denzil10.github.io/blog/">Writing</a><a href="https://www.linkedin.com/in/denzil-nelson-b18121220/">LinkedIn</a></nav>
   <div class="kicker">Built in public · AI engineering</div>
   <h1>An unattended agent fleet,<br>held to evidence.</h1>
   <p class="lede">I design and run a multi-lane autonomous agent system on one machine. Each lane researches, builds and ships small products with no human in the loop. The products are the testbed. The work is the engineering that makes unsupervised agents reliable: verifiable claims, mechanical guards, model tiering, and failure handling that doesn't depend on the model behaving.</p>
@@ -130,6 +140,10 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line);
   <p class="sub">How the fleet was steered: what the signal was, what changed, and what that bought.</p>
   <ol class="log" id="log"></ol>
 
+  <h2>Real examples</h2>
+  <p class="sub">Raw excerpts from the fleet's state files, verifier source and git history. Picked by hand; product, platform and lane names are replaced with [brackets]. Everything else is as the fleet wrote it.</p>
+  <div class="ex" id="examples"></div>
+
   <h2>Principles that held up</h2>
   <div class="principles">
     <div><h4>Capability, not judgement</h4><p>If an agent must not do something unattended, remove the permission. Don't ask it nicely.</p></div>
@@ -173,9 +187,9 @@ const DATA = {
    "spend_usd": 0.0
   },
   "model_tiers": {
+   "haiku": 175,
    "sonnet": 393,
-   "opus": 60,
-   "haiku": 175
+   "opus": 60
   },
   "weekly": [
    {
@@ -279,6 +293,57 @@ const DATA = {
    "decision": "Moved publishing to a paced script with its own cap, minimum gap and URL verification, supervised with a hard timeout. Inputs the model reasons on, such as sales numbers, are read by scripts before the run, so the model can't invent them.",
    "result": "Output cadence no longer depends on an LLM run being healthy."
   }
+ ],
+ "examples": [
+  {
+   "date": "2026-09",
+   "title": "A claim the verifier demoted",
+   "source": "state/quarantine.json",
+   "artifact": "{\n \"id\": 3,\n \"name\": \"[product]\",\n \"stage\": \"built\",\n \"_demoted_from\": \"listed\",\n \"_quarantine_reason\": [\n  \"stage=listed requires an evidence entry of type 'live_own_listing' carrying verified_via\"\n ]\n}",
+   "note": "The agent wrote stage=listed. The verifier found no live listing evidence and moved the record back to built, keeping it for review rather than deleting it. Five records sit in quarantine today, all demoted the same way."
+  },
+  {
+   "date": "2026-09",
+   "title": "Evidence that labels its own weakness",
+   "source": "state/bets.json, evidence entries",
+   "artifact": "\"verified_via\": \"WebSearch snippet only; not page-verified\"\n\"verified_via\": \"WebSearch result listing titles only, not fetched ([marketplace] blocks direct WebFetch with 403)\"",
+   "note": "Written by worker agents on market-research evidence. The field forces the agent to name how it knows something, so a weak source reads as weak instead of passing as a confirmed fact."
+  },
+  {
+   "date": "2026-09-14",
+   "title": "The verifier's own false negative",
+   "source": "core/verify-ledger.py",
+   "artifact": "\"\"\"... The original version checked only the top level,\nwhich quarantined [lane]'s genuinely-verified live listing on\n2026-09-14 (the proof was in evidence[].verified_via) and emptied the\nportfolio's active ledger. False negatives here cost real assets.\"\"\"\nif bet.get(\"verified_via\"):\n    return True\nev = bet.get(\"evidence\")\n...",
+   "note": "A strict checker can be wrong in the other direction. This one emptied a lane's ledger over a real listing, so it now reads verified_via inside each evidence entry too."
+  },
+  {
+   "date": "2026-09-20",
+   "title": "A stage that let work stop at $0",
+   "source": "core/verify-ledger.py",
+   "artifact": "# Added 2026-09-20. `awaiting-payout` was the success terminal, so eight\n# bets across [two lanes] sat \"finished\" at $0 with no stage\n# left to reach and no obligation to keep working. Revenue now has its own\n# terminal, and reaching it takes a sales figure read from [the storefront], not a\n# narrative claim: sales_count must be a positive integer in the evidence.\n\"first-sale\": (\n    \"an evidence entry of type 'sales_check' ... whose sales_count is > 0, carrying verified_via\",\n    lambda bet: any(\n        e.get(\"type\") in (\"sales_check\", \"market_series\")\n        and e.get(\"verified_via\")\n        and isinstance(e.get(\"sales_count\"), int)\n        and e.get(\"sales_count\") > 0\n        for e in bet.get(\"evidence\") or []),\n),",
+   "note": "The stage machine defined what done meant, and it set the bar too low. Eight bets reached the last stage without earning anything. Adding a terminal stage that needs a scripted sales read fixed it."
+  },
+  {
+   "date": "2026-09-20",
+   "title": "The fleet discards its own fabricated rows",
+   "source": "git log",
+   "artifact": "b068435  2026-09-20  [lane] tick 42 (2026-09-20): no transition; discarded 19 fabricated/unverified [data] rows found uncommitted on disk for bet 5",
+   "note": "A previous run left 19 rows on disk without evidence. The next run threw them out and logged why in its commit, under the same evidence rule the verifier enforces."
+  },
+  {
+   "date": "2026-10-14",
+   "title": "One day of the stall rule",
+   "source": "git log",
+   "artifact": "ccd7744  12:13  Stall rule: park a portfolio after 3 ticks repeating one item with no progress\nb86068a  12:22  [lane]: fix disabled Publish (blur Link before click), publish row 11, clear stall\n0fdfd6f  23:57  [lane]: stalled: ticks 134-136 (3), parked by stall rule",
+   "note": "The rule shipped at noon. Nine minutes later a lane found why its Publish button stayed disabled (a focused input had to lose focus first) and cleared its stall. That night the rule parked a lane after three runs with no progress, so it filed one blocker instead of paying for a fourth run."
+  },
+  {
+   "date": "2026-10-22",
+   "title": "The planner questions its own target",
+   "source": "memory/changes.jsonl",
+   "artifact": "{\"actor\": \"planner\", \"op\": \"PROPOSE\",\n \"text\": \"Director: debug [the publish pacer]. It has posted 1-2 [posts] a day against the cap of 6 since 2026-10-19, despite due=true. Check the 120-minute gap logic, the duplicate-check false positives and the schedule trigger in run-tick.sh. Or lower the cap to what it can deliver and set the verdict date accordingly.\",\n \"why\": \"Pacer status 2/6 with last post 03:23Z at 22:22Z on 10-21, after 2/6 on 10-19 and 1/6 on 10-20 ...\"}",
+   "note": "The planner has no tools. It read the pacer's numbers, saw delivery far below the cap, and proposed either fixing the script or making the verdict date honest. A PROPOSE op goes to the director (me); it changes nothing on its own."
+  }
  ]
 };
 const M = DATA.metrics, fmt = n => n.toLocaleString("en-US");
@@ -348,11 +413,15 @@ document.getElementById("log").innerHTML = DATA.decisions.slice().reverse().map(
     <dt>Signal</dt><dd>${esc(d.signal)}</dd><dt>Decision</dt><dd>${esc(d.decision)}</dd><dt>Result</dt><dd>${esc(d.result)}</dd>
   </dl></li>`).join("");
 
+document.getElementById("examples").innerHTML = DATA.examples.map(x => `
+  <article><time>${x.date}</time> <span class="src">· ${esc(x.source)}</span><h3>${esc(x.title)}</h3>
+  <pre><code>${esc(x.artifact)}</code></pre><p>${esc(x.note)}</p></article>`).join("");
+
 const t = M.model_tiers;
 document.getElementById("foot").innerHTML =
-  `Generated from the fleet's own logs and git history on ${M.as_of}, not written by hand. ` +
+  `Numbers generated from the fleet's own logs and git history on ${M.as_of}; the decision log and examples are curated from the same sources. ` +
   `Runs by model tier: Sonnet ${fmt(t.sonnet || 0)}, Haiku ${fmt(t.haiku || 0)}, Opus ${fmt(t.opus || 0)}. ` +
-  `${fmt(M.turns)} agent turns, about $${fmt(Math.round(M.notional_cost_usd))} at API list price, all of it run on an existing subscription and free tiers. Built by Denzil.`;
+  `${fmt(M.turns)} agent turns, about $${fmt(Math.round(M.notional_cost_usd))} at API list price, all of it run on an existing subscription and free tiers. Built by <a href="https://denzil10.github.io/">Denzil Nelson</a>.`;
 </script>
 </body>
 </html>

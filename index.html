@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Unattended agent fleet: built in public</title>
 <meta name="description" content="How I run an autonomous, multi-lane agent fleet with no human in the loop, and the structural guards that keep it honest.">
+<meta property="og:title" content="Unattended agent fleet: built in public">
+<meta property="og:description" content="How I run an autonomous, multi-lane agent fleet with no human in the loop, and the structural guards that keep it honest.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://denzil10.github.io/agent-fleet/">
+<meta property="og:image" content="https://denzil10.github.io/photo.jpg">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://denzil10.github.io/agent-fleet/">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebPage", "name": "Unattended agent fleet: built in public", "description": "How I run an autonomous, multi-lane agent fleet with no human in the loop, and the structural guards that keep it honest.", "url": "https://denzil10.github.io/agent-fleet/", "mainEntityOfPage": "https://denzil10.github.io/agent-fleet/", "image": "https://denzil10.github.io/photo.jpg", "inLanguage": "en", "author": {"@type": "Person", "name": "Denzil Nelson", "url": "https://denzil10.github.io/"}}</script>
 <style>
 :root {
   --bg: #fcfcfb; --panel: #f3f2ee; --line: #dddcd6; --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #7a7973;
@@ -157,18 +165,18 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line);
 <script>
 const DATA = {
  "metrics": {
-  "as_of": "2026-10-25",
+  "as_of": "2026-10-27",
   "since": "2026-09-11",
   "lanes": 3,
-  "commits": 530,
+  "commits": 538,
   "runs": {
-   "scheduled": 532,
-   "completed": 383,
+   "scheduled": 536,
+   "completed": 387,
    "errored": 17,
    "no_output": 132
   },
-  "turns": 9422,
-  "notional_cost_usd": 307.98,
+  "turns": 9498,
+  "notional_cost_usd": 309.26,
   "guard_denials": 1,
   "claims_quarantined": 5,
   "stalls_parked": 1,
@@ -176,7 +184,7 @@ const DATA = {
   "planner_edits": {
    "ADD": 31,
    "PROPOSE": 11,
-   "EDIT": 38,
+   "EDIT": 40,
    "RETIRE": 17,
    "MERGE": 2
   },
@@ -187,9 +195,9 @@ const DATA = {
    "spend_usd": 0.0
   },
   "model_tiers": {
-   "opus": 60,
-   "sonnet": 393,
-   "haiku": 175
+   "haiku": 175,
+   "sonnet": 397,
+   "opus": 60
   },
   "weekly": [
    {
@@ -233,6 +241,12 @@ const DATA = {
     "completed": 34,
     "errored": 0,
     "no_output": 2
+   },
+   {
+    "week": "2026-10-26",
+    "completed": 4,
+    "errored": 0,
+    "no_output": 0
    }
   ]
  },

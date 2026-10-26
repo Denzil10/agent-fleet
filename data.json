@@ -1,16 +1,16 @@
 {
- "as_of": "2026-10-25",
+ "as_of": "2026-10-27",
  "since": "2026-09-11",
  "lanes": 3,
- "commits": 530,
+ "commits": 538,
  "runs": {
-  "scheduled": 532,
-  "completed": 383,
+  "scheduled": 536,
+  "completed": 387,
   "errored": 17,
   "no_output": 132
  },
- "turns": 9422,
- "notional_cost_usd": 307.98,
+ "turns": 9498,
+ "notional_cost_usd": 309.26,
  "guard_denials": 1,
  "claims_quarantined": 5,
  "stalls_parked": 1,
@@ -18,7 +18,7 @@
  "planner_edits": {
   "ADD": 31,
   "PROPOSE": 11,
-  "EDIT": 38,
+  "EDIT": 40,
   "RETIRE": 17,
   "MERGE": 2
  },
@@ -29,9 +29,9 @@
   "spend_usd": 0.0
  },
  "model_tiers": {
-  "opus": 60,
-  "sonnet": 393,
-  "haiku": 175
+  "haiku": 175,
+  "sonnet": 397,
+  "opus": 60
  },
  "weekly": [
   {
@@ -75,6 +75,12 @@
    "completed": 34,
    "errored": 0,
    "no_output": 2
+  },
+  {
+   "week": "2026-10-26",
+   "completed": 4,
+   "errored": 0,
+   "no_output": 0
   }
  ]
 }
